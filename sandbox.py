@@ -11,7 +11,7 @@ class Resource(object):
         if req.content_length:
             doc = json.load(req.stream)
         if 'push' not in doc or 'actor' not in doc or 'repository' not in doc:
-            raise falcon.HTTPBadRequest("Invalid payload received: %s" % doc)
+            raise falcon.HTTPBadRequest("INvalid payload received: %s" % doc)
     
         actor = doc['actor']
         repository = doc['repository']
