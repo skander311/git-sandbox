@@ -7,17 +7,19 @@ class Resource(object):
         self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
         self.db = self.mdb.gitsandbox
 
-        
+
 
     def on_post(self, req, resp):
         if req.content_length:
             doc = json.load(req.stream)
-        if 'push' not in doc or 'actor' not in doc or 'repository' not in doc:
-            raise falcon.HTTPBadRequest("INvalid payload received: %s" % doc)
+        if 'push' not in doc or 'actor' not in doc or 'repository' not in doc :
+            raise falcon.HTTPBadRequest("Invalid payload received: %s" % doc)
     
         actor = doc['actor']
         repository = doc['repository']
         changes = doc['push']['changes']
+
+        commits = doc['push']['changes'][0]['commits'][0]
 
         if not self.db.repository.find_one({'full_name': repository['full_name']}):
             self.db.repository.insert_one({
@@ -26,6 +28,18 @@ class Resource(object):
                 'url': repository['links']['self']['href'],
                 'private': repository['is_private'],
             })
+
+            print('[%s]' % ', '.join(map(str, repository)))
+
+            self.db.commits.insert({
+                'hash': commits['hash'],
+                'date': commits['date'],
+                'message': commits['message'],
+                'author': commits['author']['raw'],
+
+            })
+            print('[%s]' % ', '.join(map(str, commits)))
+
 
         resp.status = falcon.HTTP_200  # This is the default status
         resp.body = ('Okey')
