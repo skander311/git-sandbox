@@ -7,6 +7,8 @@ class Resource(object):
         self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
         self.db = self.mdb.gitsandbox
 
+        
+
     def on_post(self, req, resp):
         if req.content_length:
             doc = json.load(req.stream)
