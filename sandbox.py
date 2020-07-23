@@ -25,7 +25,7 @@ class Resource(object):
 
         original_id = ObjectId()
 
-        if not self.db.repository.find_one({'full_name': repository['full_name']}):
+        if not self.db.repository.find_one({'key': repository['full_name']}):
             self.db.repository.insert_one({
                 '_id': original_id,
                 'provider': 'bitbucket',
