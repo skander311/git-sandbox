@@ -3,3 +3,4 @@ falcon
 gunicorn
 pymongo
 mongodb
+gitpy

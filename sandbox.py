@@ -20,12 +20,14 @@ class Resource(object):
         actor = doc['actor']
         repository = doc['repository']
         changes = doc['push']['changes']
-
         commits = doc['push']['changes'][0]['commits'][0]
 
         original_id = ObjectId()
 
-        if not self.db.repository.find_one({'key': repository['full_name']}):
+        repo = self.db.repository.find_one({'key': repository['full_name']})
+        print(repo)
+
+        if not repo:
             self.db.repository.insert_one({
                 '_id': original_id,
                 'provider': 'bitbucket',
@@ -33,19 +35,21 @@ class Resource(object):
                 'url': repository['links']['self']['href'],
                 'private': repository['is_private'],
             })
+        else:
+            original_id = repo['_id']
 
-            #print('[%s]' % ', '.join(map(str, repository)))
 
+        if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
                 'repository_id': original_id,
                 'hash': commits['hash'],
                 'date': commits['date'],
                 'message': commits['message'],
                 'author': commits['author']['raw'],
+                'href': commits['links']['self']['href'],
+                'type': commits['type'],
 
             })
-            #print('[%s]' % ', '.join(map(str, commits)))
-
             self.db.commits.aggregate([
                 {
                     "$lookup":
@@ -53,10 +57,13 @@ class Resource(object):
                             "from": "repository",
                             "localField": "repository_id",
                             "foreignField": "_id",
-                            "as": "test"
+                            "as": "respo.commits"
                         }
                 }
             ])
+
+            #print('[%s]' % ', '.join(map(str, commits)))
+
 
 
         resp.status = falcon.HTTP_200  # This is the default status
