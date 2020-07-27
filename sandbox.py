@@ -1,14 +1,15 @@
 import falcon
 import json
+import git
 import pymongo
 from bson import ObjectId
-
+from pymongo import MongoClient
+import gitpy
 
 class Resource(object):
     def __init__(self):
         self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
         self.db = self.mdb.gitsandbox
-
 
 
     def on_post(self, req, resp):
@@ -24,10 +25,9 @@ class Resource(object):
 
         original_id = ObjectId()
 
-        repo = self.db.repository.find_one({'key': repository['full_name']})
-        print(repo)
+        repo_git = self.db.repository.find_one({'key': repository['full_name']})
 
-        if not repo:
+        if not repo_git:
             self.db.repository.insert_one({
                 '_id': original_id,
                 'provider': 'bitbucket',
@@ -36,8 +36,7 @@ class Resource(object):
                 'private': repository['is_private'],
             })
         else:
-            original_id = repo['_id']
-
+            original_id = repo_git['_id']
 
         if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
@@ -50,19 +49,22 @@ class Resource(object):
                 'type': commits['type'],
 
             })
-            self.db.commits.aggregate([
-                {
-                    "$lookup":
-                        {
-                            "from": "repository",
-                            "localField": "repository_id",
-                            "foreignField": "_id",
-                            "as": "respo.commits"
-                        }
-                }
-            ])
 
-            #print('[%s]' % ', '.join(map(str, commits)))
+        client = MongoClient(
+            'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
+
+        result = client['gitsandbox']['commits'].aggregate([
+            {
+                '$lookup': {
+                    'from': 'repository',
+                    'localField': 'repository_id',
+                    'foreignField': '_id',
+                    'as': 'agg'
+                }
+            }
+        ])
+
+        print(result)
 
 
 
