@@ -14,38 +14,7 @@ class Resource(object):
         self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
         self.db = self.mdb.gitsandbox
 
-
-        date_format = "%Y-%m-%dT%H:%M:%S%z"
-        empty_tree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-
-        path = '/home/skander/workspace/git-sandbox'
-        repo = git.Repo(path)
-        print(repo)
-
-        for commit in repo.iter_commits('master'):
-            parent = commit.parents[0] if commit.parents else empty_tree
-            diffs = {
-                diff.a_path: diff for diff in commit.diff(parent)
-            }
-
-            for objpath, stats in commit.stats.files.items():
-                diff = diffs.get(objpath)
-
-                if not diff:
-                    for diff in diffs.values():
-                        if diff.b_path == path and diff.renamed:
-                            break
-
-                stats.update({
-                    'object': os.path.join(path, objpath),
-                    'commit': commit.hexsha,
-                    'author': commit.author.email,
-                    'timestamp': commit.authored_datetime.strftime(date_format),
-                     'type' : diff.change_type
-                })
-                print(stats)
-   
-        '''
+    '''
         path = '/home/skander/workspace/git-sandbox'
         my_repo = git.Repo(path)
         commits_list = list(my_repo.iter_commits())
@@ -70,6 +39,7 @@ class Resource(object):
         '''
 
     def on_post(self, req, resp):
+        global commit, stats
         if req.content_length:
             doc = json.load(req.stream)
         if 'push' not in doc or 'actor' not in doc or 'repository' not in doc:
@@ -81,7 +51,6 @@ class Resource(object):
         commits = doc['push']['changes'][0]['commits'][0]
 
         original_id = ObjectId()
-
         repo_git = self.db.repository.find_one({'key': repository['full_name']})
 
         if not repo_git:
@@ -107,6 +76,56 @@ class Resource(object):
 
             })
 
+        date_format = "%Y-%m-%dT%H:%M:%S%z"
+        empty_tree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+        path = '/home/skander/workspace/git-sandbox'
+        repo = git.Repo(path)
+
+        for commit in repo.iter_commits('master'):
+            parent = commit.parents[0] if commit.parents else empty_tree
+            diffs = {
+                diff.a_path: diff for diff in commit.diff(parent)
+            }
+            for objpath, stats in commit.stats.files.items():
+                diff = diffs.get(objpath)
+
+                if not diff:
+                    for diff in diffs.values():
+                        if diff.b_path == path and diff.renamed:
+                            break
+
+                stats.update({
+                    'object': os.path.join(path, objpath),
+                    'commit': commit.hexsha,
+                    'summary': commit.summary,
+                    'author': commit.author.name,
+                    'author-email': commit.author.email,
+                    'timestamp': commit.authored_datetime,
+                    'type': diff.change_type,
+                    'size': commit.size,
+                })
+
+                print('#####')
+                print(stats)
+                print('#####')
+
+            # if not self.db.commits.find_one({stats['commit']: commits['hash']}):
+            self.db.files.insert({
+                'file name': stats['object'],
+                'hash': stats['commit'],
+                'commit message': stats['summary'],
+                'author': stats['author'],
+                'author email': stats['author-email'],
+                'date': stats['timestamp'],
+                'insertions': stats['insertions'],
+                'deletions': stats['deletions'],
+                'lines': stats['lines'],
+                'type': stats['type'],
+                'size': stats['size'],
+
+            })
+
         client = MongoClient(
             'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
 
@@ -129,5 +148,4 @@ class Resource(object):
 
 app = falcon.API()
 
-# things will handle all requests to the '/things' URL path
 app.add_route('/webhook', Resource())
