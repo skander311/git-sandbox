@@ -11,55 +11,43 @@ class Resource(object):
 
     def __init__(self):
 
-
         self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
         self.db = self.mdb.gitsandbox
 
-        DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
-        EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
-        # Create the repository, raises an error if it isn't one.
+        date_format = "%Y-%m-%dT%H:%M:%S%z"
+        empty_tree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
         path = '/home/skander/workspace/git-sandbox'
         repo = git.Repo(path)
         print(repo)
 
-        # Iterate through every commit for the given branch in the repository
         for commit in repo.iter_commits('master'):
-            # Determine the parent of the commit to diff against.
-            # If no parent, this is the first commit, so use empty tree.
-            # Then create a mapping of path to diff for each file changed.
-            parent = commit.parents[0] if commit.parents else EMPTY_TREE_SHA
+            parent = commit.parents[0] if commit.parents else empty_tree
             diffs = {
                 diff.a_path: diff for diff in commit.diff(parent)
             }
 
-            # The stats on the commit is a summary of all the changes for this
-            # commit, we'll iterate through it to get the information we need.
             for objpath, stats in commit.stats.files.items():
-
-                # Select the diff for the path in the stats
                 diff = diffs.get(objpath)
 
-                # If the path is not in the dictionary, it's because it was
-                # renamed, so search through the b_paths for the current name.
                 if not diff:
                     for diff in diffs.values():
                         if diff.b_path == path and diff.renamed:
                             break
 
-                # Update the stats with the additional information
                 stats.update({
                     'object': os.path.join(path, objpath),
                     'commit': commit.hexsha,
                     'author': commit.author.email,
-                    'timestamp': commit.authored_datetime.strftime(DATE_TIME_FORMAT),
-                    # 'size': diff_size(diff),
-                    # 'type': diff_type(diff),
+                    'timestamp': commit.authored_datetime.strftime(date_format),
+                     'type' : diff.change_type
                 })
                 print(stats)
-
-
+   
         '''
+        path = '/home/skander/workspace/git-sandbox'
+        my_repo = git.Repo(path)
         commits_list = list(my_repo.iter_commits())
         for i in commits_list:
             print(i)
@@ -79,11 +67,7 @@ class Resource(object):
         for doc in cursor.find():
             hash_list += [doc["hash"]]
             print("hash_list:", hash_list)
-         '''
-
-
-
-
+        '''
 
     def on_post(self, req, resp):
         if req.content_length:
