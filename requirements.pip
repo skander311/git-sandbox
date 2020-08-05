@@ -6,3 +6,4 @@ mongodb
 gitpy
 python-git
 gitpython
+requests

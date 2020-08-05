@@ -1,6 +1,7 @@
 import json
 import falcon
 import pymongo
+import requests
 from bson import ObjectId
 from pymongo import MongoClient
 import git
@@ -52,6 +53,42 @@ class Resource(object):
 
             })
 
+        diff = commits['links']['diff']['href']
+        diff_stat = (diff.replace('diff','diffstat'))
+        r = requests.get(diff_stat)
+        doc = r.json()
+        files = doc['values'][0]
+        type_file = files['status']
+
+        if type_file == "modified":
+            self.db.files.insert({
+                'status': files['status'],
+                'type_commit': files['type'],
+                'old_name': files['old']['path'],
+                'new_name': files['new']['path'],
+                'lines removed': files['lines_removed'],
+                'lines added': files['lines_added'],
+                'lines ': files['lines_added'] - files['lines_removed'],
+            })
+        elif type_file == "added":
+            self.db.files.insert({
+                'status': files['status'],
+                'type_commit': files['new']['type'],
+                'new_name': files['new']['path'],
+                'lines removed': files['lines_removed'],
+                'lines added': files['lines_added'],
+                'lines ': files['lines_added']+files['lines_removed'],
+            })
+        else:
+            self.db.files.insert({
+                'status': files['status'],
+                'type_commit': files['old']['type'],
+                'old_name': files['old']['path'],
+                'lines removed': files['lines_removed'],
+                'lines added': files['lines_added'],
+                'lines ': files['lines_added'] + files['lines_removed'],
+            })
+
         client = MongoClient(
             'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
 
@@ -65,7 +102,6 @@ class Resource(object):
                 }
             }
         ])
-
         print(result)
 
         '''
