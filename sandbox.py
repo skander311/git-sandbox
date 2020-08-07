@@ -4,6 +4,8 @@ import pymongo
 import requests
 from bson import ObjectId
 from pymongo import MongoClient
+import urllib.request
+from unidiff import PatchSet
 import git
 import os
 
@@ -27,23 +29,27 @@ class Resource(object):
         changes = doc['push']['changes']
         commits = doc['push']['changes'][0]['commits'][0]
 
-        original_id = ObjectId()
+        original_id_repo = ObjectId()
+        orginal_id_commit = ObjectId()
+
         repo_git = self.db.repository.find_one({'key': repository['full_name']})
+
 
         if not repo_git:
             self.db.repository.insert_one({
-                '_id': original_id,
+                '_id': original_id_repo,
                 'provider': 'bitbucket',
                 'key': repository['full_name'],
                 'url': repository['links']['self']['href'],
                 'private': repository['is_private'],
             })
         else:
-            original_id = repo_git['_id']
+            original_id_repo = repo_git['_id']
 
         if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
-                'repository_id': original_id,
+                '_id': orginal_id_commit,
+                'repository_id': original_id_repo,
                 'hash': commits['hash'],
                 'date': commits['date'],
                 'message': commits['message'],
@@ -52,57 +58,77 @@ class Resource(object):
                 'type': commits['type'],
 
             })
+            diff = commits['links']['diff']['href']
+            diff_stat = (diff.replace('diff', 'diffstat'))
+            r = requests.get(diff_stat)
+            doc = r.json()
+            files = doc['values'][0]
+            type_file = files['status']
 
-        diff = commits['links']['diff']['href']
-        diff_stat = (diff.replace('diff','diffstat'))
-        r = requests.get(diff_stat)
-        doc = r.json()
-        files = doc['values'][0]
-        type_file = files['status']
+            if type_file == "modified":
+                self.db.files.insert({
+                    'commit_id': orginal_id_commit,
+                    'status': files['status'],
+                    'type_commit': files['type'],
+                    'old_name': files['old']['path'],
+                    'new_name': files['new']['path'],
+                    'lines removed': files['lines_removed'],
+                    'lines added': files['lines_added'],
+                    'lines ': files['lines_added'] - files['lines_removed'],
+                })
+            elif type_file == "added":
+                self.db.files.insert({
+                    'commit_id': orginal_id_commit,
+                    'status': files['status'],
+                    'type_commit': files['new']['type'],
+                    'new_name': files['new']['path'],
+                    'lines removed': files['lines_removed'],
+                    'lines added': files['lines_added'],
+                    'lines ': files['lines_added'] + files['lines_removed'],
+                })
+            else:
+                self.db.files.insert({
+                    'commit_id': orginal_id_commit,
+                    'status': files['status'],
+                    'type_commit': files['old']['type'],
+                    'old_name': files['old']['path'],
+                    'lines removed': files['lines_removed'],
+                    'lines added': files['lines_added'],
+                    'lines ': files['lines_added'] + files['lines_removed'],
+                })
 
-        if type_file == "modified":
-            self.db.files.insert({
-                'status': files['status'],
-                'type_commit': files['type'],
-                'old_name': files['old']['path'],
-                'new_name': files['new']['path'],
-                'lines removed': files['lines_removed'],
-                'lines added': files['lines_added'],
-                'lines ': files['lines_added'] - files['lines_removed'],
-            })
-        elif type_file == "added":
-            self.db.files.insert({
-                'status': files['status'],
-                'type_commit': files['new']['type'],
-                'new_name': files['new']['path'],
-                'lines removed': files['lines_removed'],
-                'lines added': files['lines_added'],
-                'lines ': files['lines_added']+files['lines_removed'],
-            })
-        else:
-            self.db.files.insert({
-                'status': files['status'],
-                'type_commit': files['old']['type'],
-                'old_name': files['old']['path'],
-                'lines removed': files['lines_removed'],
-                'lines added': files['lines_added'],
-                'lines ': files['lines_added'] + files['lines_removed'],
-            })
+        patch = commits['links']['patch']['href']
+        page = urllib.request.urlopen(patch)
+        patch_f = PatchSet(page, encoding='utf-8')
+        print(patch_f[0].added)
+
+
 
         client = MongoClient(
             'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
 
-        result = client['gitsandbox']['commits'].aggregate([
+        result_1 = client['gitsandbox']['commits'].aggregate([
             {
                 '$lookup': {
                     'from': 'repository',
                     'localField': 'repository_id',
                     'foreignField': '_id',
-                    'as': 'agg'
+                    'as': 'agg_repo_commits'
                 }
             }
         ])
-        print(result)
+        result_2 = client['gitsandbox']['files'].aggregate([
+            {
+                '$lookup': {
+                    'from': 'commits',
+                    'localField': 'commit_id',
+                    'foreignField': '_id',
+                    'as': 'agg_files_commits'
+                }
+            }
+        ])
+        print(result_1)
+        print(result_2)
 
         '''
                 path = '/home/skander/workspace/git-sandbox'
