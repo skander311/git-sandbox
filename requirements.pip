@@ -9,3 +9,5 @@ gitpython
 requests
 whatthepatch
 unidiff
+pymongo[srv]
+sshtunnel

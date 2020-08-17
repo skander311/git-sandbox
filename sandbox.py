@@ -1,4 +1,6 @@
+import argparse
 import json
+import subprocess
 import falcon
 import pymongo
 import requests
@@ -6,19 +8,18 @@ from bson import ObjectId
 from pymongo import MongoClient
 import urllib.request
 from unidiff import PatchSet
-import git
-import os
-
 
 class Resource(object):
 
     def __init__(self):
 
-        self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
+        self.mdb = pymongo.MongoClient("mongodb://git_skander:git_skander311@127.0.0.1/gitsandbox")
+        #self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
+        #self.mdb = pymongo.MongoClient("mongodb+srv://skander:Skander311@cluster0.f5hb3.mongodb.net/<dbname>?retryWrites=true&w=majority")
         self.db = self.mdb.gitsandbox
 
     def on_post(self, req, resp):
-        global commit, stats
+        global commit, stats, s
         if req.content_length:
             doc = json.load(req.stream)
         if 'push' not in doc or 'actor' not in doc or 'repository' not in doc:
@@ -64,6 +65,7 @@ class Resource(object):
             doc = r.json()
             files = doc['values'][0]
             type_file = files['status']
+            s = files['old']['path']
 
             if type_file == "modified":
                 self.db.files.insert({
@@ -84,7 +86,7 @@ class Resource(object):
                     'new_name': files['new']['path'],
                     'lines removed': files['lines_removed'],
                     'lines added': files['lines_added'],
-                    'lines ': files['lines_added'] + files['lines_removed'],
+                    'lines ': files['lines_added'],
                 })
             else:
                 self.db.files.insert({
@@ -97,12 +99,16 @@ class Resource(object):
                     'lines ': files['lines_added'] + files['lines_removed'],
                 })
 
+
         patch = commits['links']['patch']['href']
         page = urllib.request.urlopen(patch)
         patch_f = PatchSet(page, encoding='utf-8')
+
+        print(patch_f[0])
         print(patch_f[0].added)
-
-
+        print(patch_f[0].removed)
+        print(patch_f[0].is_added_file)
+        print(patch_f[0].is_removed_file)
 
         client = MongoClient(
             'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
