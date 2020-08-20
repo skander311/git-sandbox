@@ -61,7 +61,6 @@ class Resource(object):
                 'message': commits['message'],
                 'href': commits['links']['self']['href'],
                 'type': commits['type'],
-
             })
             print(commits['date'])
             self.db.users.insert({
