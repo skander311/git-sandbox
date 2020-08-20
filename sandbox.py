@@ -1,6 +1,8 @@
 import argparse
 import json
 import subprocess
+from sqlite3.dbapi2 import Date
+
 import falcon
 import pymongo
 import requests
@@ -13,8 +15,8 @@ class Resource(object):
 
     def __init__(self):
 
-        self.mdb = pymongo.MongoClient("mongodb://git_skander:git_skander311@127.0.0.1/gitsandbox")
-        #self.mdb = pymongo.MongoClient("mongodb://localhost:27017/gitsandbox")
+        #self.mdb = pymongo.MongoClient("mongodb://git_skander:git_skander311@192.168.17.128/gitsandbox")
+        self.mdb = pymongo.MongoClient("mongodb://192.168.17.128:27017/gitsandbox")
         #self.mdb = pymongo.MongoClient("mongodb+srv://skander:Skander311@cluster0.f5hb3.mongodb.net/<dbname>?retryWrites=true&w=majority")
         self.db = self.mdb.gitsandbox
 
@@ -29,9 +31,12 @@ class Resource(object):
         repository = doc['repository']
         changes = doc['push']['changes']
         commits = doc['push']['changes'][0]['commits'][0]
+        users = doc['actor']
+
 
         original_id_repo = ObjectId()
         orginal_id_commit = ObjectId()
+        orginal_id_user = ObjectId()
 
         repo_git = self.db.repository.find_one({'key': repository['full_name']})
 
@@ -54,18 +59,24 @@ class Resource(object):
                 'hash': commits['hash'],
                 'date': commits['date'],
                 'message': commits['message'],
-                'author': commits['author']['raw'],
                 'href': commits['links']['self']['href'],
                 'type': commits['type'],
 
             })
+            print(commits['date'])
+            self.db.users.insert({
+                '_id': orginal_id_user,
+                'commit_id': orginal_id_commit,
+                'name': users['display_name'],
+                'type': users['type'],
+            })
+
             diff = commits['links']['diff']['href']
             diff_stat = (diff.replace('diff', 'diffstat'))
             r = requests.get(diff_stat)
             doc = r.json()
             files = doc['values'][0]
             type_file = files['status']
-            s = files['old']['path']
 
             if type_file == "modified":
                 self.db.files.insert({
@@ -74,8 +85,8 @@ class Resource(object):
                     'type_commit': files['type'],
                     'old_name': files['old']['path'],
                     'new_name': files['new']['path'],
-                    'lines removed': files['lines_removed'],
-                    'lines added': files['lines_added'],
+                    'linesremoved': files['lines_removed'],
+                    'linesadded': files['lines_added'],
                     'lines ': files['lines_added'] - files['lines_removed'],
                 })
             elif type_file == "added":
@@ -84,8 +95,8 @@ class Resource(object):
                     'status': files['status'],
                     'type_commit': files['new']['type'],
                     'new_name': files['new']['path'],
-                    'lines removed': files['lines_removed'],
-                    'lines added': files['lines_added'],
+                    'linesremoved': files['lines_removed'],
+                    'linesadded': files['lines_added'],
                     'lines ': files['lines_added'],
                 })
             else:
@@ -94,12 +105,10 @@ class Resource(object):
                     'status': files['status'],
                     'type_commit': files['old']['type'],
                     'old_name': files['old']['path'],
-                    'lines removed': files['lines_removed'],
-                    'lines added': files['lines_added'],
+                    'linesremoved': files['lines_removed'],
+                    'linesadded': files['lines_added'],
                     'lines ': files['lines_added'] + files['lines_removed'],
                 })
-
-
         patch = commits['links']['patch']['href']
         page = urllib.request.urlopen(patch)
         patch_f = PatchSet(page, encoding='utf-8')
@@ -133,8 +142,20 @@ class Resource(object):
                 }
             }
         ])
+        result_3= client['gitsandbox']['users'].aggregate([
+            {
+                '$lookup': {
+                    'from': 'commits',
+                    'localField': 'commit_id',
+                    'foreignField': '_id',
+                    'as': 'agg_users_commits'
+                }
+            }
+        ])
         print(result_1)
         print(result_2)
+        print(result_3)
+
 
         '''
                 path = '/home/skander/workspace/git-sandbox'
