@@ -52,6 +52,16 @@ class Resource(object):
         else:
             original_id_repo = repo_git['_id']
 
+        patch = commits['links']['patch']['href']
+        page = urllib.request.urlopen(patch)
+        patch_f = PatchSet(page, encoding='utf-8')
+
+        print(patch_f[0])
+        print(patch_f[0].added)
+        print(patch_f[0].removed)
+        print(patch_f[0].is_added_file)
+        print(patch_f[0].is_modified_file)
+
         if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
                 '_id': orginal_id_commit,
@@ -61,6 +71,10 @@ class Resource(object):
                 'message': commits['message'],
                 'href': commits['links']['self']['href'],
                 'type': commits['type'],
+                'files_added' : len(patch_f.added_files),
+                'files_removed' : len(patch_f.removed_files),
+                'files_modified' : len(patch_f.modified_files),
+
             })
             print(commits['date'])
             self.db.users.insert({
@@ -84,8 +98,8 @@ class Resource(object):
                     'type_commit': files['type'],
                     'old_name': files['old']['path'],
                     'new_name': files['new']['path'],
-                    'linesremoved': files['lines_removed'],
-                    'linesadded': files['lines_added'],
+                    'lines_removed': files['lines_removed'],
+                    'lines_added': files['lines_added'],
                     'lines ': files['lines_added'] - files['lines_removed'],
                 })
             elif type_file == "added":
@@ -94,8 +108,8 @@ class Resource(object):
                     'status': files['status'],
                     'type_commit': files['new']['type'],
                     'new_name': files['new']['path'],
-                    'linesremoved': files['lines_removed'],
-                    'linesadded': files['lines_added'],
+                    'lines_removed': files['lines_removed'],
+                    'lines_added': files['lines_added'],
                     'lines ': files['lines_added'],
                 })
             else:
@@ -104,19 +118,12 @@ class Resource(object):
                     'status': files['status'],
                     'type_commit': files['old']['type'],
                     'old_name': files['old']['path'],
-                    'linesremoved': files['lines_removed'],
-                    'linesadded': files['lines_added'],
+                    'lines_removed': files['lines_removed'],
+                    'lines_added': files['lines_added'],
                     'lines ': files['lines_added'] + files['lines_removed'],
                 })
-        patch = commits['links']['patch']['href']
-        page = urllib.request.urlopen(patch)
-        patch_f = PatchSet(page, encoding='utf-8')
 
-        print(patch_f[0])
-        print(patch_f[0].added)
-        print(patch_f[0].removed)
-        print(patch_f[0].is_added_file)
-        print(patch_f[0].is_removed_file)
+        #print(patch_f[0].is_removed_file)
 
         client = MongoClient(
             'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
