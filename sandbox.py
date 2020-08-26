@@ -16,7 +16,7 @@ class Resource(object):
     def __init__(self):
 
         #self.mdb = pymongo.MongoClient("mongodb://git_skander:git_skander311@192.168.17.128/gitsandbox")
-        self.mdb = pymongo.MongoClient("mongodb://192.168.17.128:27017/gitsandbox")
+        self.mdb = pymongo.MongoClient("mongodb://127.0.0.1:27017/gitsandbox")
         #self.mdb = pymongo.MongoClient("mongodb+srv://skander:Skander311@cluster0.f5hb3.mongodb.net/<dbname>?retryWrites=true&w=majority")
         self.db = self.mdb.gitsandbox
 

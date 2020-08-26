@@ -2,7 +2,6 @@ flask
 falcon
 gunicorn
 pymongo
-mongodb
 gitpy
 python-git
 gitpython
