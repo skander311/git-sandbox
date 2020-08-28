@@ -16,7 +16,7 @@ class Resource(object):
     def __init__(self):
 
         #self.mdb = pymongo.MongoClient("mongodb://git_skander:git_skander311@192.168.17.128/gitsandbox")
-        self.mdb = pymongo.MongoClient("mongodb://127.0.0.1:27017/gitsandbox")
+        self.mdb = pymongo.MongoClient("mongodb://skander:123456o@127.0.0.1:27017/gitsandbox?authSource=admin")
         #self.mdb = pymongo.MongoClient("mongodb+srv://skander:Skander311@cluster0.f5hb3.mongodb.net/<dbname>?retryWrites=true&w=majority")
         self.db = self.mdb.gitsandbox
 
@@ -122,8 +122,7 @@ class Resource(object):
                     'linesadded': files['lines_added'],
                     'lines ': files['lines_added'],
                 })
-        client = MongoClient(
-            'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false')
+        client = MongoClient("mongodb://skander:123456o@127.0.0.1:27017/gitsandbox?authSource=admin")
 
         result_1 = client['gitsandbox']['commits'].aggregate([
             {
