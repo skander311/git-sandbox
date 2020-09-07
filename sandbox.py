@@ -124,6 +124,7 @@ class Resource(object):
                 })
         client = MongoClient("mongodb://skander:123456o@127.0.0.1:27017/gitsandbox?authSource=admin")
 
+
         result_1 = client['gitsandbox']['commits'].aggregate([
             {
                 '$lookup': {
