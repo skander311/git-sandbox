@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .sandbox.py.swp
+.swp
 # C extensions
 *.so
 
