@@ -60,9 +60,9 @@ class Resource(object):
                 'message': commits['message'],
                 'href': commits['links']['self']['href'],
                 'type': commits['type'],
-                #'filesadded' : len(patch_f.added_files),
-                #'filesremoved' : len(patch_f.removed_files),
-                #'filesmodified' : len(patch_f.modified_files),
+                'filesadded' : len(patch_f.added_files),
+                'filesremoved' : len(patch_f.removed_files),
+                'filesmodified' : len(patch_f.modified_files),
 
             })
             self.db.users.insert({
