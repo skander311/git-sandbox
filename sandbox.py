@@ -48,7 +48,7 @@ class Resource(object):
             original_id_repo = repo_git['_id']
 
         patch = commits['links']['patch']['href']
-        page = urllib.request.urlopen(patch)
+        page = urllib.request.urlopen(patch, auth('skander.hmad@esprit.tn', 'Skander311'))
         patch_f = PatchSet(page, encoding='utf-8')
 
         if not self.db.commits.find_one({'hash': commits['hash']}):
@@ -74,7 +74,7 @@ class Resource(object):
 
             diff = commits['links']['diff']['href']
             diff_stat = (diff.replace('diff', 'diffstat'))
-            r = requests.get(diff_stat)
+            r = requests.get(diff_stat, auth('skander.hmad@esprit.tn', 'Skander311'))
             doc = r.json()
             i = 0
             while i < len(doc['values']):
