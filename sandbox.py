@@ -19,7 +19,6 @@ class Resource(object):
          self.db = self.mdb.gitsandbox
 
     def on_post(self, req, resp):
-        print("am here !")
         global commit, stats, s
         if req.content_length:
             doc = json.load(req.stream)
