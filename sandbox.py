@@ -17,6 +17,7 @@ class Resource(object):
          self.db = self.mdb.gitsandbox
 
     def on_post(self, req, resp):
+        print("am here !")
         global commit, stats, s
         if req.content_length:
             doc = json.load(req.stream)
@@ -50,7 +51,6 @@ class Resource(object):
         page = urllib.request.urlopen(patch)
         patch_f = PatchSet(page, encoding='utf-8')
 
-    
         if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
                 '_id': orginal_id_commit,
@@ -60,9 +60,9 @@ class Resource(object):
                 'message': commits['message'],
                 'href': commits['links']['self']['href'],
                 'type': commits['type'],
-                'filesadded' : len(patch_f.added_files),
-                'filesremoved' : len(patch_f.removed_files),
-                'filesmodified' : len(patch_f.modified_files),
+                #'filesadded' : len(patch_f.added_files),
+                #'filesremoved' : len(patch_f.removed_files),
+                #'filesmodified' : len(patch_f.modified_files),
 
             })
             self.db.users.insert({
