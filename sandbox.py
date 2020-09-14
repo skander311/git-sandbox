@@ -6,7 +6,9 @@ import pymongo
 import requests
 from bson import ObjectId
 from pymongo import MongoClient
-import urllib.request
+import urllib.request as urllib2
+import base64
+from requests.auth import HTTPBasicAuth
 from unidiff import PatchSet
 
 class Resource(object):
@@ -48,8 +50,15 @@ class Resource(object):
             original_id_repo = repo_git['_id']
 
         patch = commits['links']['patch']['href']
-        page = urllib.request.urlopen(patch, auth('skander.hmad@esprit.tn', 'Skander311'))
-        patch_f = PatchSet(page, encoding='utf-8')
+        username = "skander.hmad@esprit.tn"
+        password = "Skander311"
+        url = patch
+        request = urllib2.Request(url)
+        userpass = username + ':' + password
+        encoded_u = base64.b64encode(userpass.encode()).decode()
+        request.add_header("Authorization", "Basic %s" % encoded_u)
+        result = urllib2.urlopen(request)
+        patch_f = PatchSet(result, encoding='utf-8')
 
         if not self.db.commits.find_one({'hash': commits['hash']}):
             self.db.commits.insert({
@@ -74,7 +83,7 @@ class Resource(object):
 
             diff = commits['links']['diff']['href']
             diff_stat = (diff.replace('diff', 'diffstat'))
-            r = requests.get(diff_stat, auth('skander.hmad@esprit.tn', 'Skander311'))
+            r = requests.get(diff_stat, auth=HTTPBasicAuth('skander.hmad@esprit.tn', 'Skander311'))
             doc = r.json()
             i = 0
             while i < len(doc['values']):
