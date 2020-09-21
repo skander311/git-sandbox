@@ -124,7 +124,6 @@ class Resource(object):
         resp.status = falcon.HTTP_200  # This is the default status
         resp.body = ('Okey')
 
-
 app = falcon.API()
 
 app.add_route('/webhook', Resource())
