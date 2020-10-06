@@ -30,7 +30,6 @@ class Resource(object):
         changes = doc['push']['changes']
         commits = doc['push']['changes'][0]['commits'][0]
         users = doc['actor']
-
         original_id_repo = ObjectId()
         orginal_id_commit = ObjectId()
         orginal_id_user = ObjectId()
