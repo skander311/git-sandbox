@@ -24,7 +24,8 @@ class Resource(object):
             doc = json.load(req.stream)
         if 'push' not in doc or 'actor' not in doc or 'repository' not in doc:
             raise falcon.HTTPBadRequest("Invalid payload received: %s" % doc)
-
+        print(doc)
+        print('*-commit sent-*')
         actor = doc['actor']
         repository = doc['repository']
         changes = doc['push']['changes']
